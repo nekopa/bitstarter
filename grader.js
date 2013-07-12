@@ -45,8 +45,19 @@ var cheerioHtmlFile = function(htmlfile) {
     return cheerio.load(fs.readFileSync(htmlfile));
 };
 
+var cheerioUrlResult = function(url_result) {
+    return cheerio.load(url_result);
+};
+
 var loadChecks = function(checksfile) {
     return JSON.parse(fs.readFileSync(checksfile));
+};
+
+
+var clone = function(fn) {
+    // Workaround for commander.js issue.
+    // http://stackoverflow.com/a/6772648
+    return fn.bind({});
 };
 
 var checkHtmlFile = function(htmlfile, checksfile) {
@@ -60,10 +71,15 @@ var checkHtmlFile = function(htmlfile, checksfile) {
     return out;
 };
 
-var clone = function(fn) {
-    // Workaround for commander.js issue.
-    // http://stackoverflow.com/a/6772648
-    return fn.bind({});
+var checkUrlResult = function(url_result, checksfile) {
+    $ = cheerioUrlResult(url_result);
+    var checks = loadChecks(checksfile).sort();
+    var out = {};
+    for(var ii in checks) {
+	var present = $(checks[ii]).length > 0;
+	out[checks[ii]] = present;
+    }
+    return out;
 };
 
 if(require.main == module) {
@@ -77,13 +93,11 @@ if(require.main == module) {
 	    if(result instanceof Error) {
 		console.log('Error: ' + result.message);
 	    } else {
-		fs.writeFileSync('weburl.html', result);
-		var checkJson = checkHtmlFile('weburl.html', program.checks);
-		 var outJson = JSON.stringify(checkJson, null, 4);
+		var checkJson = checkUrlResult(result, program.checks);
+		var outJson = JSON.stringify(checkJson, null, 4);
 		 console.log(outJson);
 		}
-	    });
-	//console.log('URL!!');
+	    });	
     } else { 
 	var checkJson = checkHtmlFile(program.file, program.checks);
 	var outJson = JSON.stringify(checkJson, null, 4);
